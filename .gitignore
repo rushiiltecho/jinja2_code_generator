@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.env
+*.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
+
+# Virtual environment
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+
+# IDEs
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Test coverage
+htmlcov/
+.coverage
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+
+# Misc
+*.swp
+*.bak
+*.tmp
+*.orig
+*.rej
+
+# Folders
+api_configs/
+generated_toolsets/
