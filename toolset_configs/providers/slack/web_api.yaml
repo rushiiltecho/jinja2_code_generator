@@ -1,0 +1,13 @@
+auth_type: bearer
+base_url: https://slack.com/api
+env_vars:
+  access_token: SLACK_BOT_TOKEN
+metadata:
+  documentation: https://api.slack.com/web
+name: Slack Web API
+provider: slack
+scopes:
+  channels_read: channels:read
+  chat_write: chat:write
+  users_read: users:read
+spec_url: https://raw.githubusercontent.com/slackapi/slack-api-specs/master/web-api/slack_web_openapi_v2.json

@@ -1,0 +1,271 @@
+"""
+{{ config.name }} Toolset
+=========================
+Generated for {{ config.provider }} provider using Google Agent Development Kit (ADK)
+
+Provider: {{ config.provider }}
+API: {{ config.name }}
+Auth Type: {{ config.auth_type }}
+"""
+
+import json
+import os
+import requests
+from typing import Any, List, Optional, Union, Dict
+
+from google.adk.tools.base_toolset import BaseToolset
+from google.adk.tools.openapi_tool import OpenAPIToolset
+from google.adk.auth.auth_credential import AuthCredential, AuthCredentialTypes, HttpAuth, HttpCredentials
+
+
+class {{ class_name }}(BaseToolset):
+    """{{ config.name }} toolset for Google Agent Development Kit (ADK)"""
+    
+    def __init__(self, **kwargs):
+        """Initialize {{ config.name }} toolset"""
+        # Configuration
+        self.config = {{ config | tojson }}
+        self.provider = "{{ config.provider }}"
+        self.api_name = "{{ api_name }}"
+        
+        # Authentication parameters
+        {%- if config.auth_type == "bearer" %}
+        self.access_token = kwargs.get('access_token') or os.getenv('{{ config.env_vars.get("access_token", "ACCESS_TOKEN") }}')
+        {%- elif config.auth_type == "oauth2" %}
+        self.client_id = kwargs.get('client_id') or os.getenv('{{ config.env_vars.get("client_id", "CLIENT_ID") }}')
+        self.client_secret = kwargs.get('client_secret') or os.getenv('{{ config.env_vars.get("client_secret", "CLIENT_SECRET") }}')
+        self.access_token = kwargs.get('access_token')
+        {%- elif config.auth_type == "api_key" %}
+        self.api_key = kwargs.get('api_key') or os.getenv('{{ config.env_vars.get("api_key", "API_KEY") }}')
+        {%- endif %}
+        
+        # Other configuration parameters
+        {%- for key, env_var in config.env_vars.items() %}
+        {%- if key not in ['client_id', 'client_secret', 'access_token', 'api_key'] %}
+        self.{{ key }} = kwargs.get('{{ key }}') or os.getenv('{{ env_var }}')
+        {%- endif %}
+        {%- endfor %}
+        
+        self.tool_filter = kwargs.get('tool_filter')
+        self._openapi_toolset = None
+    
+    def get_tools(self, readonly_context=None):
+        """Get available tools for this API"""
+        if not self._openapi_toolset:
+            self._openapi_toolset = self._create_openapi_toolset()
+            self._configure_authentication()
+        
+        return self._openapi_toolset.get_tools(readonly_context)
+    
+    def _create_openapi_toolset(self):
+        """Create the OpenAPI toolset"""
+        try:
+            spec_dict = self._fetch_openapi_spec()
+            spec_dict = self._process_spec(spec_dict)
+            
+            return OpenAPIToolset(
+                spec_str=json.dumps(spec_dict),
+                spec_str_type="json",
+                tool_filter=self.tool_filter
+            )
+        except Exception as e:
+            print(f"Warning: Could not create OpenAPI toolset for {{ config.name }}: {e}")
+            # Return a minimal toolset
+            return self._create_minimal_toolset()
+    
+    def _fetch_openapi_spec(self):
+        """Fetch the OpenAPI specification"""
+        spec_url = self.config['spec_url']
+        
+        if spec_url.startswith('custom://'):
+            return self._generate_custom_spec()
+        
+        try:
+            headers = {'Accept': 'application/json'}
+            response = requests.get(spec_url, headers=headers, timeout=30)
+            response.raise_for_status()
+            
+            # Handle both JSON and YAML responses
+            content_type = response.headers.get('content-type', '').lower()
+            if 'yaml' in content_type or spec_url.endswith(('.yaml', '.yml')):
+                import yaml
+                return yaml.safe_load(response.text)
+            else:
+                return response.json()
+                
+        except Exception as e:
+            print(f"Warning: Could not fetch spec from {spec_url}: {e}")
+            return self._generate_minimal_spec()
+    
+    def _process_spec(self, spec_dict):
+        """Process the OpenAPI specification"""
+        if not isinstance(spec_dict, dict):
+            return self._generate_minimal_spec()
+        
+        # Handle server URL templating
+        {%- if config.server_url_template %}
+        try:
+            from jinja2 import Template
+            template_vars = {}
+            {%- for key, env_var in config.env_vars.items() %}
+            if hasattr(self, '{{ key }}') and getattr(self, '{{ key }}'):
+                template_vars['{{ key }}'] = getattr(self, '{{ key }}')
+            {%- endfor %}
+            
+            if template_vars:
+                template = Template("{{ config.server_url_template }}")
+                server_url = template.render(**template_vars)
+                spec_dict['servers'] = [{'url': server_url}]
+                print(f"Updated server URL to: {server_url}")
+        except Exception as e:
+            print(f"Warning: Could not render server URL template: {e}")
+        {%- endif %}
+        
+        # Convert boolean enums to strings (common issue)
+        self._convert_boolean_enums(spec_dict)
+        
+        return spec_dict
+    
+    def _configure_authentication(self):
+        """Configure authentication for the toolset"""
+        if not self._openapi_toolset:
+            return
+        
+        try:
+            {%- if config.auth_type == "bearer" %}
+            if self.access_token:
+                auth_credential = AuthCredential(
+                    auth_type=AuthCredentialTypes.HTTP,
+                    http=HttpAuth(
+                        scheme="bearer",
+                        credentials=HttpCredentials(token=self.access_token)
+                    )
+                )
+                self._openapi_toolset._configure_auth_all(None, auth_credential)
+            {%- elif config.auth_type == "oauth2" %}
+            if self.access_token:
+                auth_credential = AuthCredential(
+                    auth_type=AuthCredentialTypes.HTTP,
+                    http=HttpAuth(
+                        scheme="bearer",
+                        credentials=HttpCredentials(token=self.access_token)
+                    )
+                )
+                self._openapi_toolset._configure_auth_all(None, auth_credential)
+            {%- elif config.auth_type == "api_key" %}
+            if self.api_key:
+                auth_credential = AuthCredential(
+                    auth_type=AuthCredentialTypes.HTTP,
+                    http=HttpAuth(
+                        scheme="bearer",
+                        credentials=HttpCredentials(token=self.api_key)
+                    )
+                )
+                self._openapi_toolset._configure_auth_all(None, auth_credential)
+            {%- endif %}
+        except Exception as e:
+            print(f"Warning: Could not configure authentication for {{ config.name }}: {e}")
+    
+    def _generate_custom_spec(self):
+        """Generate a custom OpenAPI spec for APIs that don't provide one"""
+        return {
+            "openapi": "3.0.3",
+            "info": {
+                "title": self.config['name'],
+                "version": "1.0.0",
+                "description": f"Generated spec for {self.config['name']}"
+            },
+            "servers": [
+                {"url": self.config['base_url']}
+            ],
+            "paths": {
+                "/": {
+                    "get": {
+                        "operationId": "rootEndpoint",
+                        "summary": "Root endpoint",
+                        "responses": {
+                            "200": {
+                                "description": "Success",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {"type": "object"}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    
+    def _generate_minimal_spec(self):
+        """Generate a minimal working OpenAPI spec"""
+        return self._generate_custom_spec()
+    
+    def _create_minimal_toolset(self):
+        """Create a minimal toolset when OpenAPI creation fails"""
+        minimal_spec = self._generate_minimal_spec()
+        return OpenAPIToolset(
+            spec_str=json.dumps(minimal_spec),
+            spec_str_type="json"
+        )
+    
+    @staticmethod
+    def _convert_boolean_enums(obj):
+        """Convert boolean enums to strings in OpenAPI spec"""
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                if key == 'enum' and isinstance(value, list):
+                    if any(isinstance(x, bool) for x in value):
+                        obj[key] = [str(x).lower() if isinstance(x, bool) else x for x in value]
+                elif isinstance(value, (dict, list)):
+                    {{ class_name }}._convert_boolean_enums(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                if isinstance(item, (dict, list)):
+                    {{ class_name }}._convert_boolean_enums(item)
+    
+    def validate_configuration(self):
+        """Validate the current configuration"""
+        issues = []
+        
+        {%- if config.auth_type == "bearer" %}
+        if not self.access_token:
+            issues.append("access_token is required but not provided")
+        {%- elif config.auth_type == "oauth2" %}
+        if not self.client_id:
+            issues.append("client_id is required but not provided")
+        if not self.client_secret:
+            issues.append("client_secret is required but not provided")
+        {%- elif config.auth_type == "api_key" %}
+        if not self.api_key:
+            issues.append("api_key is required but not provided")
+        {%- endif %}
+        
+        {%- for key, env_var in config.env_vars.items() %}
+        {%- if key not in ['client_id', 'client_secret', 'access_token', 'api_key'] %}
+        if not getattr(self, '{{ key }}', None):
+            issues.append("{{ key }} is required but not provided (env var: {{ env_var }})")
+        {%- endif %}
+        {%- endfor %}
+        
+        return issues
+    
+    def get_api_info(self):
+        """Get information about this API"""
+        return {
+            "name": self.config['name'],
+            "provider": self.config['provider'],
+            "auth_type": self.config['auth_type'],
+            "base_url": self.config['base_url']
+        }
+    
+    async def close(self):
+        """Cleanup resources"""
+        if self._openapi_toolset:
+            await self._openapi_toolset.close()
+
+
+def create_{{ api_name }}_toolset(**kwargs):
+    """Factory function for {{ config.name }}"""
+    return {{ class_name }}(**kwargs)

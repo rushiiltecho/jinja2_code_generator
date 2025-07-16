@@ -1,0 +1,31 @@
+# File: toolset_configs/providers/atlassian/confluence.yaml
+name: "Atlassian Confluence Cloud API"
+provider: "atlassian"
+base_url: "https://api.atlassian.com/ex/confluence/{cloud_id}"
+spec_url: "https://developer.atlassian.com/cloud/confluence/swagger.v3.json"
+auth_type: "oauth2"
+server_url_template: "https://api.atlassian.com/ex/confluence/{{ cloud_id }}"
+scopes:
+  read_content: "read:confluence-content.all"
+  write_content: "write:confluence-content"
+  read_space: "read:confluence-space.summary"
+  offline: "offline_access"
+auth_endpoints:
+  authorization_url: "https://auth.atlassian.com/authorize"
+  token_url: "https://auth.atlassian.com/oauth/token"
+  userinfo_url: "https://api.atlassian.com/me"
+  revocation_url: "https://auth.atlassian.com/oauth/revoke"
+env_vars:
+  client_id: "CONFLUENCE_CLIENT_ID"
+  client_secret: "CONFLUENCE_CLIENT_SECRET"
+  cloud_id: "CONFLUENCE_CLOUD_ID"
+custom_headers:
+  Accept: "application/json"
+  User-Agent: "ADK-Confluence-Agent/1.0"
+custom_processors:
+  - "boolean_enum_converter"
+metadata:
+  documentation: "https://developer.atlassian.com/cloud/confluence/rest/"
+  rate_limits:
+    requests_per_second: 10
+    requests_per_hour: 3600

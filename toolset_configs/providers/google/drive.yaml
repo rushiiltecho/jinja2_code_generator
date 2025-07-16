@@ -1,0 +1,17 @@
+auth_endpoints:
+  authorization_url: https://accounts.google.com/o/oauth2/auth
+  token_url: https://oauth2.googleapis.com/token
+auth_type: oauth2
+base_url: https://www.googleapis.com/drive/v3
+env_vars:
+  client_id: GOOGLE_CLIENT_ID
+  client_secret: GOOGLE_CLIENT_SECRET
+metadata:
+  documentation: https://developers.google.com/drive/api
+name: Google Drive API
+provider: google
+scopes:
+  file: https://www.googleapis.com/auth/drive.file
+  full: https://www.googleapis.com/auth/drive
+  readonly: https://www.googleapis.com/auth/drive.readonly
+spec_url: https://www.googleapis.com/discovery/v1/apis/drive/v3/rest

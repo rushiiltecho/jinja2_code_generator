@@ -1,0 +1,62 @@
+"""
+Generated Toolset Registry
+Total Toolsets: {{ all_toolsets | length }}
+"""
+
+from typing import Dict, Any, List
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Import all toolsets
+{% for toolset in all_toolsets -%}
+try:
+    from .{{ toolset.module_name }} import {{ toolset.class_name }}, create_{{ toolset.api_name }}_toolset
+except ImportError as e:
+    logger.warning(f"Could not import {{ toolset.class_name }}: {e}")
+    {{ toolset.class_name }} = None
+    create_{{ toolset.api_name }}_toolset = None
+
+{% endfor %}
+
+# Toolset registry
+TOOLSET_REGISTRY = {
+{% for toolset in all_toolsets -%}
+    "{{ toolset.api_name }}": {{ toolset.class_name }},
+{% endfor %}
+}
+
+# Factory registry
+FACTORY_REGISTRY = {
+{% for toolset in all_toolsets -%}
+    "{{ toolset.api_name }}": create_{{ toolset.api_name }}_toolset,
+{% endfor %}
+}
+
+
+def get_toolset(api_name: str, **kwargs):
+    """Get toolset by name"""
+    if api_name not in TOOLSET_REGISTRY:
+        available = [name for name, cls in TOOLSET_REGISTRY.items() if cls is not None]
+        raise ValueError(f"Unknown API: {api_name}. Available: {available}")
+    
+    toolset_class = TOOLSET_REGISTRY[api_name]
+    if toolset_class is None:
+        raise ImportError(f"Could not import toolset for {api_name}")
+    
+    return toolset_class(**kwargs)
+
+
+def list_available_toolsets():
+    """List available toolsets"""
+    return [name for name, cls in TOOLSET_REGISTRY.items() if cls is not None]
+
+
+def get_toolset_summary():
+    """Get registry summary"""
+    available = [name for name, cls in TOOLSET_REGISTRY.items() if cls is not None]
+    return {
+        "total_toolsets": len(TOOLSET_REGISTRY),
+        "available_toolsets": len(available),
+        "available_apis": available
+    }

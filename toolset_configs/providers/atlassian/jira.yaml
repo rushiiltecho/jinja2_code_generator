@@ -1,0 +1,18 @@
+auth_endpoints:
+  authorization_url: https://auth.atlassian.com/authorize
+  token_url: https://auth.atlassian.com/oauth/token
+auth_type: oauth2
+base_url: https://api.atlassian.com/ex/jira/{cloud_id}
+env_vars:
+  client_id: JIRA_CLIENT_ID
+  client_secret: JIRA_CLIENT_SECRET
+  cloud_id: JIRA_CLOUD_ID
+metadata:
+  documentation: https://developer.atlassian.com/cloud/jira/platform/rest/
+name: Atlassian Jira Cloud API
+provider: atlassian
+scopes:
+  read_work: read:jira-work
+  write_work: write:jira-work
+server_url_template: https://api.atlassian.com/ex/jira/{{ cloud_id }}
+spec_url: https://developer.atlassian.com/cloud/jira/platform/swagger-v3.v3.json
