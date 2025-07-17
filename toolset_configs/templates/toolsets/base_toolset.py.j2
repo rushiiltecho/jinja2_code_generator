@@ -29,22 +29,22 @@ class {{ class_name }}(BaseToolset):
         self.api_name = "{{ api_name }}"
         
         # Authentication parameters
-        {%- if config.auth_type == "bearer" %}
+        {% if config.auth_type == "bearer" %}
         self.access_token = kwargs.get('access_token') or os.getenv('{{ config.env_vars.get("access_token", "ACCESS_TOKEN") }}')
-        {%- elif config.auth_type == "oauth2" %}
+        {% elif config.auth_type == "oauth2" %}
         self.client_id = kwargs.get('client_id') or os.getenv('{{ config.env_vars.get("client_id", "CLIENT_ID") }}')
         self.client_secret = kwargs.get('client_secret') or os.getenv('{{ config.env_vars.get("client_secret", "CLIENT_SECRET") }}')
         self.access_token = kwargs.get('access_token')
-        {%- elif config.auth_type == "api_key" %}
+        {% elif config.auth_type == "api_key" %}
         self.api_key = kwargs.get('api_key') or os.getenv('{{ config.env_vars.get("api_key", "API_KEY") }}')
-        {%- endif %}
+        {% endif %}
         
         # Other configuration parameters
-        {%- for key, env_var in config.env_vars.items() %}
-        {%- if key not in ['client_id', 'client_secret', 'access_token', 'api_key'] %}
+        {% for key, env_var in config.env_vars.items() %}
+        {% if key not in ['client_id', 'client_secret', 'access_token', 'api_key'] %}
         self.{{ key }} = kwargs.get('{{ key }}') or os.getenv('{{ env_var }}')
-        {%- endif %}
-        {%- endfor %}
+        {% endif %}
+        {% endfor %}
         
         self.tool_filter = kwargs.get('tool_filter')
         self._openapi_toolset = None
@@ -103,14 +103,14 @@ class {{ class_name }}(BaseToolset):
             return self._generate_minimal_spec()
         
         # Handle server URL templating
-        {%- if config.server_url_template %}
+        {% if config.server_url_template %}
         try:
             from jinja2 import Template
             template_vars = {}
-            {%- for key, env_var in config.env_vars.items() %}
+            {% for key, env_var in config.env_vars.items() %}
             if hasattr(self, '{{ key }}') and getattr(self, '{{ key }}'):
                 template_vars['{{ key }}'] = getattr(self, '{{ key }}')
-            {%- endfor %}
+            {% endfor %}
             
             if template_vars:
                 template = Template("{{ config.server_url_template }}")
@@ -119,7 +119,7 @@ class {{ class_name }}(BaseToolset):
                 print(f"Updated server URL to: {server_url}")
         except Exception as e:
             print(f"Warning: Could not render server URL template: {e}")
-        {%- endif %}
+        {% endif %}
         
         # Convert boolean enums to strings (common issue)
         self._convert_boolean_enums(spec_dict)
@@ -132,7 +132,7 @@ class {{ class_name }}(BaseToolset):
             return
         
         try:
-            {%- if config.auth_type == "bearer" %}
+            {% if config.auth_type == "bearer" %}
             if self.access_token:
                 auth_credential = AuthCredential(
                     auth_type=AuthCredentialTypes.HTTP,
@@ -142,7 +142,7 @@ class {{ class_name }}(BaseToolset):
                     )
                 )
                 self._openapi_toolset._configure_auth_all(None, auth_credential)
-            {%- elif config.auth_type == "oauth2" %}
+            {% elif config.auth_type == "oauth2" %}
             if self.access_token:
                 auth_credential = AuthCredential(
                     auth_type=AuthCredentialTypes.HTTP,
@@ -152,7 +152,7 @@ class {{ class_name }}(BaseToolset):
                     )
                 )
                 self._openapi_toolset._configure_auth_all(None, auth_credential)
-            {%- elif config.auth_type == "api_key" %}
+            {% elif config.auth_type == "api_key" %}
             if self.api_key:
                 auth_credential = AuthCredential(
                     auth_type=AuthCredentialTypes.HTTP,
@@ -162,7 +162,7 @@ class {{ class_name }}(BaseToolset):
                     )
                 )
                 self._openapi_toolset._configure_auth_all(None, auth_credential)
-            {%- endif %}
+            {% endif %}
         except Exception as e:
             print(f"Warning: Could not configure authentication for {{ config.name }}: {e}")
     
@@ -228,27 +228,25 @@ class {{ class_name }}(BaseToolset):
     def validate_configuration(self):
         """Validate the current configuration"""
         issues = []
-        
-        {%- if config.auth_type == "bearer" %}
+        {% if config.auth_type == "bearer" %}
         if not self.access_token:
             issues.append("access_token is required but not provided")
-        {%- elif config.auth_type == "oauth2" %}
+        {% elif config.auth_type == "oauth2" %}
         if not self.client_id:
             issues.append("client_id is required but not provided")
         if not self.client_secret:
             issues.append("client_secret is required but not provided")
-        {%- elif config.auth_type == "api_key" %}
+        {% elif config.auth_type == "api_key" %}
         if not self.api_key:
             issues.append("api_key is required but not provided")
-        {%- endif %}
-        
-        {%- for key, env_var in config.env_vars.items() %}
-        {%- if key not in ['client_id', 'client_secret', 'access_token', 'api_key'] %}
+        {% endif %}
+
+        {% for key, env_var in config.env_vars.items() %}
+        {% if key not in ['client_id', 'client_secret', 'access_token', 'api_key'] %}
         if not getattr(self, '{{ key }}', None):
             issues.append("{{ key }} is required but not provided (env var: {{ env_var }})")
-        {%- endif %}
-        {%- endfor %}
-        
+        {% endif %}
+        {% endfor %}
         return issues
     
     def get_api_info(self):
